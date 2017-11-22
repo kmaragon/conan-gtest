@@ -26,7 +26,7 @@ class GoogletestConan(ConanFile):
 
 
     def build(self):
-        cmake = CMake(self.settings)
+        cmake = CMake(self)
         shared = "-DBUILD_SHARED_LIBS=%s" % ("ON" if self.options.shared else "OFF")
         pthreads = "-Dgtest_disable_pthreads=%s" % ("OFF" if self.options.pthreads else "ON")
         hideinternals = "-Dgtest_hide_internal_symbols=%s" % ("ON" if self.options.hideinternals else "OFF")
