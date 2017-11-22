@@ -31,7 +31,7 @@ class GooglemockConan(ConanFile):
 
 
     def build(self):
-        cmake = CMake(self.settings)
+        cmake = CMake(self)
         
         tools.replace_in_file("googlemock/CMakeLists.txt", 
                               'if (COMMAND set_up_hermetic_build)',
