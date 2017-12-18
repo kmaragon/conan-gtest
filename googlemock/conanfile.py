@@ -1,11 +1,11 @@
 from conans import ConanFile, CMake, tools
-import os, re
+import os
 
 class GooglemockConan(ConanFile):
     name = "googlemock"
     version = "1.8.0"
-    license = "https://raw.githubusercontent.com/google/googletest/master/googletest/LICENSE"
-    url = "https://github.com/kmaragon/conan-googletest"
+    license = "BSD 3"
+    url = "https://github.com/kmaragon/conan-gtest"
     settings = "os", "compiler", "build_type", "arch"
     options = {
         "shared": [True, False],
@@ -29,47 +29,26 @@ class GooglemockConan(ConanFile):
         self.run("mv googletest*%s/googlemock googlemock" % self.version)
         self.run("mv googletest*%s/googletest googlemock/gtest" % self.version)
 
+        tools.replace_in_file("googlemock/CMakeLists.txt", "project(gmock CXX C)", '''project(gmock CXX C)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()''')
+
 
     def build(self):
         cmake = CMake(self)
         
-        tools.replace_in_file("googlemock/CMakeLists.txt", 
-                              'if (COMMAND set_up_hermetic_build)',
-                              '''include("../conanbuildinfo.cmake")
-                              conan_basic_setup()
-                              if (COMMAND set_up_hermetic_build)''')
-        
-        shared = "-DBUILD_SHARED_LIBS=%s" % ("ON" if self.options.shared else "OFF")
-        prefix = '-DCMAKE_INSTALL_PREFIX="%s"' % os.path.join(os.getcwd(), "pkg")
-        
-        self.run('mkdir -p build')
-        self.run('mkdir -p pkg')
-        self.run('cd build && cmake %s %s -f ../googlemock' % (shared, prefix))
-        
-        make_options = os.getenv("MAKEOPTS") or ""
-        if not re.match("/[^A-z-a-z_-]-j", make_options):
-            cpucount = tools.cpu_count()
-            make_options += " -j %s" % (cpucount * 2)
-
-        self.run("cd build && make %s %s install" % (cmake.build_config, make_options))
+        cmake.configure(source_dir="googlemock")
+        cmake.build()  
 
     def package(self):
-        self.copy("*gmock*", dst="lib", src="pkg/lib")
-        self.copy("*", dst="include/gmock", src="pkg/include/gmock")
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
-        if self.settings.os == "Windows" or self.options.shared:
-            if self.options.main:
-                self.cpp_info.libs = ["gmock", "gmock_main"]
-            else:
-                self.cpp_info.libs = ["gmock"]
+        if self.options.main:
+            self.cpp_info.libs = ["gmock", "gmock_main"]
         else:
-            if self.options.main:
-                self.cpp_info.libs = [
-                    os.path.join(self.package_folder, "lib", "libgmock.a"), 
-                    os.path.join(self.package_folder, "lib", "libgmock_main.a")]
-            else:
-                self.cpp_info.libs = [os.path.join(self.package_folder, "lib", "libgmock.a")]
+            self.cpp_info.libs = ["gmock"]
 
         self.cpp_info.libdirs = ["lib"]
         self.cpp_info.includedirs = ["include"]

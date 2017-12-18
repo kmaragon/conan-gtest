@@ -1,11 +1,12 @@
 from conans import ConanFile, CMake, tools
-import os, re
+import os
 
 class GoogletestConan(ConanFile):
     name = "googletest"
     version = "1.8.0"
-    license = "https://raw.githubusercontent.com/google/googletest/master/googletest/LICENSE"
-    url = "https://github.com/kmaragon/conan-googletest"
+    license = "BSD 3"
+    url = "https://github.com/kmaragon/conan-gtest"
+    description = "Conan package for google test framework"
     settings = "os", "compiler", "build_type", "arch"
     options = {
         "shared": [True, False],
@@ -23,38 +24,27 @@ class GoogletestConan(ConanFile):
         os.unlink("googletest.zip")
         
         self.run("mv googletest*%s/googletest googletest" % self.version)
-
+        tools.replace_in_file("googletest/CMakeLists.txt", "project(gtest CXX C)", '''project(gtest CXX C)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()''')
 
     def build(self):
         cmake = CMake(self)
-        shared = "-DBUILD_SHARED_LIBS=%s" % ("ON" if self.options.shared else "OFF")
-        pthreads = "-Dgtest_disable_pthreads=%s" % ("OFF" if self.options.pthreads else "ON")
-        hideinternals = "-Dgtest_hide_internal_symbols=%s" % ("ON" if self.options.hideinternals else "OFF")
-        prefix = '-DCMAKE_INSTALL_PREFIX="%s"' % self.package_folder
+        cmake.definitions["gtest_disable_pthreads"] = "OFF" if self.options.pthreads else "ON"
+        cmake.definitions["gtest_hide_internal_symbols"] = "ON" if self.options.hideinternals else "OFF"
         
-        self.run('mkdir -p build')
-        self.run('cd build && cmake %s %s %s %s -f ../googletest' % (shared, pthreads, hideinternals, prefix))
-        
-        make_options = os.getenv("MAKEOPTS") or ""
-        if not re.match("/[^A-z-a-z_-]-j", make_options):
-            cpucount = tools.cpu_count()
-            make_options += " -j %s" % (cpucount * 2)
-
-        self.run("cd build && make %s install" % cmake.build_config)
+        cmake.configure(source_dir="googletest")
+        cmake.build()
+    
+    def package(self):
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
-        if self.settings.os == "Windows" or self.options.shared:
-            if self.options.main:
-                self.cpp_info.libs = ["gtest", "gtest_main"]
-            else:
-                self.cpp_info.libs = ["gtest"]
+        if self.options.main:
+            self.cpp_info.libs = ["gtest", "gtest_main"]
         else:
-            if self.options.main:
-                self.cpp_info.libs = [
-                    os.path.join(self.package_folder, "lib", "libgtest.a"), 
-                    os.path.join(self.package_folder, "lib", "libgtest_main.a")]
-            else:
-                self.cpp_info.libs = [os.path.join(self.package_folder, "lib", "libgtest.a")]
+            self.cpp_info.libs = ["gtest"]
 
         self.cpp_info.libdirs = ["lib"]
         self.cpp_info.includedirs = ["include"]
