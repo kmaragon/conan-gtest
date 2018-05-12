@@ -14,7 +14,7 @@ class GoogletestConan(ConanFile):
         "hideinternals": [True, False],
         "main": [True, False]
     }
-    default_options = "shared=False","pthreads=True","hideinternals=False","main=True"
+    default_options = "shared=False","pthreads=False","hideinternals=False","main=True"
     generators = "cmake"
 
     def source(self):
@@ -42,7 +42,7 @@ conan_basic_setup()''')
 
     def package_info(self):
         if self.options.main:
-            self.cpp_info.libs = ["gtest", "gtest_main"]
+            self.cpp_info.libs = ["gtest_main", "gtest"]
         else:
             self.cpp_info.libs = ["gtest"]
 
@@ -50,7 +50,7 @@ conan_basic_setup()''')
         self.cpp_info.includedirs = ["include"]
         
         if self.settings.os == "Linux" and self.options.pthreads:
-            self.cpp_info.libs.append("pthread")
+            self.cpp_info.libs.append("-pthread")
         
         if self.options.shared:
             self.cpp_info.defines.append("GTEST_LINKED_AS_SHARED_LIBRARY=1")
