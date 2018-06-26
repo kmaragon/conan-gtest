@@ -26,7 +26,8 @@ class GoogletestConan(ConanFile):
         self.run("mv googletest*%s/googletest googletest" % self.version)
         tools.replace_in_file("googletest/CMakeLists.txt", "project(gtest CXX C)", '''project(gtest CXX C)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()''')
+conan_basic_setup()
+set(CMAKE_CXX_FLAGS, "${CMAKE_CXX_FLAGS} -fPIC")''')
 
     def build(self):
         cmake = CMake(self)
